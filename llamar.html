@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Llamar al mozo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+    button { width: 100%; max-width: 320px; padding: 22px; font-size: 20px;
+             border: 0; border-radius: 14px; background: #1a1a1a; color: #fff; }
+    button:disabled { opacity: .5; }
+    #msg { font-size: 18px; min-height: 28px; }
+  </style>
+</head>
+<body>
+  <h1 id="titulo">Mesa</h1>
+  <button id="b-mozo" onclick="enviar('mozo')">🔔 Llamar al mozo</button>
+  <button id="b-cuenta" onclick="enviar('cuenta')">🧾 Pedir la cuenta</button>
+  <p id="msg"></p>
+
+  <script>
+    const mesa = new URLSearchParams(location.search).get('mesa') || '';
+    document.getElementById('titulo').textContent = mesa ? 'Mesa ' + mesa : 'Mesa no indicada';
+
+    async function enviar(tipo) {
+      const msg = document.getElementById('msg');
+      const botones = document.querySelectorAll('button');
+      botones.forEach(b => b.disabled = true);
+      msg.textContent = 'Enviando...';
+      try {
+        const r = await fetch('/api/llamar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mesa, tipo }),
+        });
+        if (!r.ok) throw new Error();
+        msg.textContent = '✅ ¡Listo! El mozo ya viene en camino.';
+        setTimeout(() => botones.forEach(b => b.disabled = false), 60000);
+      } catch (e) {
+        msg.textContent = '❌ No se pudo avisar, probá de nuevo.';
+        botones.forEach(b => b.disabled = false);
+      }
+    }
+  </script>
+</body>
+</html>
