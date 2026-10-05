@@ -1,48 +1,109 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Llamar al mozo</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh;
-           display: flex; flex-direction: column; align-items: center;
-           justify-content: center; gap: 16px; padding: 24px; text-align: center; }
-    button { width: 100%; max-width: 320px; padding: 22px; font-size: 20px;
-             border: 0; border-radius: 14px; background: #1a1a1a; color: #fff; }
-    button:disabled { opacity: .5; }
-    #msg { font-size: 18px; min-height: 28px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Llamar al mozo</title>
+<style>
+  :root { --bg:#f6f4ef; --card:#ffffff; --text:#1c1c1c; --muted:#777; --accent:#1f6f54; --accent-text:#ffffff; --border:#e3dfd6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121212; --card:#1c1c1c; --text:#f2f2f2; --muted:#999; --accent:#3ba67f; --accent-text:#0b0b0b; --border:#2c2c2c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+         font-family: system-ui, -apple-system, sans-serif;
+         display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { width:100%; max-width:380px; background:var(--card); border:1px solid var(--border);
+          border-radius:24px; padding:28px 22px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.06); }
+  h1 { margin:0 0 4px; font-size:26px; }
+  .sub { margin:0 0 22px; color:var(--muted); }
+  .acciones { display:flex; flex-direction:column; gap:12px; }
+  .accion { border:0; border-radius:16px; padding:20px; font-size:19px; font-weight:600;
+            background:var(--accent); color:var(--accent-text); cursor:pointer; }
+  .accion.sec { background:transparent; color:var(--text); border:2px solid var(--border); }
+  .accion:disabled { opacity:.45; }
+  .mesas { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .mesa { border:2px solid var(--border); background:transparent; color:var(--text);
+          border-radius:14px; padding:16px 0; font-size:20px; font-weight:600; cursor:pointer; }
+  .cambiar { background:none; border:0; color:var(--muted); text-decoration:underline;
+             margin-top:14px; font-size:14px; cursor:pointer; }
+  #msg { min-height:26px; margin:16px 0 0; font-size:17px; }
+  .oculto { display:none; }
+</style>
 </head>
 <body>
-  <h1 id="titulo">Mesa</h1>
-  <button id="b-mozo" onclick="enviar('mozo')">🔔 Llamar al mozo</button>
-  <button id="b-cuenta" onclick="enviar('cuenta')">🧾 Pedir la cuenta</button>
-  <p id="msg"></p>
+  <div class="card">
+    <div id="pantalla-mesa">
+      <h1>¿Cuál es tu mesa?</h1>
+      <p class="sub">Tocá el número de tu mesa</p>
+      <div class="mesas" id="mesas"></div>
+    </div>
 
-  <script>
-    const mesa = new URLSearchParams(location.search).get('mesa') || '';
-    document.getElementById('titulo').textContent = mesa ? 'Mesa ' + mesa : 'Mesa no indicada';
+    <div id="pantalla-acciones" class="oculto">
+      <h1 id="titulo"></h1>
+      <p class="sub">¿Qué necesitás?</p>
+      <div class="acciones">
+        <button class="accion" onclick="enviar('mozo')">🔔 Llamar al mozo</button>
+        <button class="accion sec" onclick="enviar('cuenta')">🧾 Pedir la cuenta</button>
+      </div>
+      <p id="msg"></p>
+      <button class="cambiar" id="btn-cambiar" onclick="cambiarMesa()">Cambiar de mesa</button>
+    </div>
+  </div>
 
-    async function enviar(tipo) {
-      const msg = document.getElementById('msg');
-      const botones = document.querySelectorAll('button');
-      botones.forEach(b => b.disabled = true);
-      msg.textContent = 'Enviando...';
-      try {
-        const r = await fetch('/api/llamar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mesa, tipo }),
-        });
-        if (!r.ok) throw new Error();
-        msg.textContent = '✅ ¡Listo! El mozo ya viene en camino.';
-        setTimeout(() => botones.forEach(b => b.disabled = false), 60000);
-      } catch (e) {
-        msg.textContent = '❌ No se pudo avisar, probá de nuevo.';
-        botones.forEach(b => b.disabled = false);
-      }
+<script>
+  // Cantidad de mesas que aparecen en la grilla (cambiá este número si hace falta)
+  const TOTAL_MESAS = 20;
+
+  let mesa = new URLSearchParams(location.search).get('mesa') || '';
+  const vinoDelLink = !!mesa;
+  const $ = id => document.getElementById(id);
+
+  if (vinoDelLink) $('btn-cambiar').classList.add('oculto');
+
+  function mostrar() {
+    if (mesa) {
+      $('pantalla-mesa').classList.add('oculto');
+      $('pantalla-acciones').classList.remove('oculto');
+      $('titulo').textContent = 'Mesa ' + mesa;
+    } else {
+      $('pantalla-acciones').classList.add('oculto');
+      $('pantalla-mesa').classList.remove('oculto');
     }
-  </script>
+  }
+
+  for (let i = 1; i <= TOTAL_MESAS; i++) {
+    const b = document.createElement('button');
+    b.className = 'mesa';
+    b.textContent = i;
+    b.onclick = () => { mesa = String(i); $('msg').textContent = ''; mostrar(); };
+    $('mesas').appendChild(b);
+  }
+
+  function cambiarMesa() { mesa = ''; mostrar(); }
+
+  async function enviar(tipo) {
+    const botones = document.querySelectorAll('.accion');
+    botones.forEach(b => b.disabled = true);
+    $('msg').textContent = 'Enviando...';
+    try {
+      const r = await fetch('/api/llamar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mesa, tipo }),
+      });
+      if (!r.ok) throw new Error();
+      $('msg').textContent = tipo === 'mozo'
+        ? '✅ ¡Listo! El mozo ya viene en camino.'
+        : '✅ ¡Listo! Ya te llevan la cuenta.';
+      setTimeout(() => botones.forEach(b => b.disabled = false), 60000);
+    } catch (e) {
+      $('msg').textContent = '❌ No se pudo avisar, probá de nuevo.';
+      botones.forEach(b => b.disabled = false);
+    }
+  }
+
+  mostrar();
+</script>
 </body>
 </html>
