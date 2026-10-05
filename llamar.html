@@ -96,6 +96,7 @@
       $('msg').textContent = tipo === 'mozo'
         ? '✅ ¡Listo! El mozo ya viene en camino.'
         : '✅ ¡Listo! Ya te llevan la cuenta.';
+            setTimeout(() => { if (document.referrer) history.back(); }, 2500);
       setTimeout(() => botones.forEach(b => b.disabled = false), 60000);
     } catch (e) {
       $('msg').textContent = '❌ No se pudo avisar, probá de nuevo.';
